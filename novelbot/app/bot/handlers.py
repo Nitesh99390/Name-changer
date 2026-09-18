@@ -568,3 +568,33 @@ async def _safe_delete(message: Message) -> None:
         await message.delete()
     except Exception:  # pragma: no cover
         pass
+
+
+# --------------------------------------------------------------------------
+# registration
+# --------------------------------------------------------------------------
+def register_handlers(client: Client) -> int:
+    """Attach every decorated handler in this module to ``client``.
+
+    ``@Client.on_message`` used at class level does NOT register anything by
+    itself in Pyrogram 2.x - it only stores ``(handler, group)`` tuples on the
+    function's ``handlers`` attribute and relies on the plugin loader to pick
+    them up. We do not use the plugin system (it needs an importable package
+    path that differs between local runs, Docker and Render), so we collect
+    the handlers explicitly. Module definition order is preserved, which keeps
+    the catch-all document handler last.
+    """
+    registered = 0
+    for obj in list(globals().values()):
+        entries = getattr(obj, "handlers", None)
+        if not entries or not callable(obj):
+            continue
+        for entry in entries:
+            try:
+                handler, group = entry
+            except (TypeError, ValueError):
+                continue
+            client.add_handler(handler, group)
+            registered += 1
+    log.info("handlers registered", extra={"count": registered})
+    return registered

@@ -81,6 +81,7 @@ class Settings:
     api_id: int
     api_hash: str
     bot_token: str
+    bot_enabled: bool
 
     # --- Web / hosting ---
     port: int
@@ -159,6 +160,7 @@ class Settings:
             "api_id": self.api_id,
             "api_hash": mask(self.api_hash),
             "bot_token": mask(self.bot_token),
+            "bot_enabled": self.bot_enabled,
             "port": self.port,
             "webhook_base": self.webhook_base or "<unset>",
             "supabase": self.storage_enabled,
@@ -177,6 +179,9 @@ def _load() -> Settings:
         api_id=_int("TELEGRAM_API_ID", 0),
         api_hash=_str("TELEGRAM_API_HASH"),
         bot_token=_str("BOT_TOKEN"),
+        # BOT_ENABLED=false boots ONLY the web service / Mini App (handy for
+        # local UI previews or CI). Production leaves it at the default (true).
+        bot_enabled=_bool("BOT_ENABLED", True),
         port=_int("PORT", 8000),
         public_url=_str("PUBLIC_URL").rstrip("/"),
         mini_app_url=_str("MINI_APP_URL").rstrip("/"),
@@ -206,12 +211,14 @@ def _load() -> Settings:
     )
 
     problems: list[str] = []
-    if settings.api_id <= 0:
-        problems.append("TELEGRAM_API_ID is missing or not a positive integer")
-    if len(settings.api_hash) < 16:
-        problems.append("TELEGRAM_API_HASH is missing or too short")
-    if not _BOT_TOKEN_RE.match(settings.bot_token or ""):
-        problems.append("BOT_TOKEN is missing or does not look like a bot token")
+    if settings.bot_enabled:
+        # Telegram credentials are only mandatory when the bot actually runs.
+        if settings.api_id <= 0:
+            problems.append("TELEGRAM_API_ID is missing or not a positive integer")
+        if len(settings.api_hash) < 16:
+            problems.append("TELEGRAM_API_HASH is missing or too short")
+        if not _BOT_TOKEN_RE.match(settings.bot_token or ""):
+            problems.append("BOT_TOKEN is missing or does not look like a bot token")
     if settings.max_file_mb <= 0:
         problems.append("MAX_FILE_MB must be > 0")
     if settings.rate_limit_per_hour <= 0:

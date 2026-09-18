@@ -81,6 +81,23 @@ async def health(request: web.Request) -> web.Response:
     return web.Response(text="ok", content_type="text/plain")
 
 
+_FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+    '<rect width="64" height="64" rx="14" fill="#2481cc"/>'
+    '<text x="32" y="44" font-size="36" text-anchor="middle" '
+    'font-family="Segoe UI Emoji,Apple Color Emoji,sans-serif">📖</text></svg>'
+)
+
+
+async def favicon(request: web.Request) -> web.Response:
+    """Inline SVG favicon so browsers stop logging a 404 for /favicon.ico."""
+    return web.Response(
+        text=_FAVICON_SVG,
+        content_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 async def api_health(request: web.Request) -> web.Response:
     from ..runtime import get_runtime
     from ..services.jobs import get_job_manager
@@ -262,6 +279,7 @@ def create_app() -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/health", health)
     app.router.add_get("/ping", health)
+    app.router.add_get("/favicon.ico", favicon)
     app.router.add_get("/api/health", api_health)
     app.router.add_get("/api/mapping", api_mapping)
     app.router.add_post("/api/preview", api_preview)
