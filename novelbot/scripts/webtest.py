@@ -1,11 +1,20 @@
-"""Boot the aiohttp app in-process (no Telegram, no Supabase) and hit the routes."""
+#!/usr/bin/env python3
+"""Boot the aiohttp app in-process (no Telegram, no Supabase) and hit the routes.
+
+    python scripts/webtest.py
+"""
 import os, sys, tempfile, json, asyncio
+from pathlib import Path
+
+# Make the app importable when run from the repo root (or anywhere else).
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 os.environ.setdefault("TELEGRAM_API_ID","123456")
 os.environ.setdefault("TELEGRAM_API_HASH","0"*32)
 os.environ.setdefault("BOT_TOKEN","123456:AAA-this-is-only-a-selftest-token-000000")
 os.environ.setdefault("SUPABASE_ENABLED","false")
 os.environ.setdefault("DATA_DIR", tempfile.mkdtemp(prefix="webtest-"))
-sys.path.insert(0, "/home/user/novelbot")
 
 from aiohttp.test_utils import TestClient, TestServer
 from app.logging_setup import setup_logging

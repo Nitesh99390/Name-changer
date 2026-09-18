@@ -49,6 +49,7 @@ Supabase metadata layer and a Render free-tier deployment.
 | 10 | no web service | **Render free plan cannot run workers at all** | bot + aiohttp web server in one process/loop, binds `0.0.0.0:$PORT` |
 | 11 | no persistence | no stats, no settings | Supabase REST layer, **metadata only** |
 | 12 | `print()` debugging | unreadable logs | structured JSON logs with secret redaction |
+| 13 | `@Client.on_message` at class level with **no** plugin loader | Pyrogram 2.x only *stashes* those handlers on the function; nothing is attached → bot connects but stays **silent** | explicit `register_handlers(client)` called in `main.py`, verified by `scripts/boottest.py` |
 
 ---
 
@@ -133,7 +134,11 @@ novelbot/
 │   ├── in_first.txt
 │   └── in_last.txt
 ├── sql/schema.sql                # Supabase tables + RLS + RPC
-└── scripts/selftest.py           # 25+ offline checks, run before deploy
+└── scripts/
+    ├── selftest.py               # 35 offline unit checks (mapping, regex, limiter, initData)
+    ├── e2e_novel.py              # synthetic novel: discovery -> convert -> no cascade
+    ├── webtest.py                # boots aiohttp in-process, hits every route
+    └── boottest.py               # imports main.py + proves handlers attach to the client
 ```
 
 ---
@@ -146,8 +151,21 @@ python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\ac
 pip install -r requirements.txt
 
 cp .env.example .env        # then fill in the 3 Telegram values
-python scripts/selftest.py  # 25+ offline checks - no network needed
-python main.py              # http://localhost:8000/health  ->  ok
+
+# run all four offline suites - no network, no Telegram, no Supabase needed
+python scripts/selftest.py   # 35 checks: mapping, single-pass regex, limiter, initData
+python scripts/e2e_novel.py  # 14 checks: synthetic novel end-to-end
+python scripts/webtest.py    # every HTTP route
+python scripts/boottest.py   # main.py imports + all 12 handlers attach
+
+python main.py               # http://localhost:8000/health  ->  ok
+```
+
+**Preview the Mini App without a bot token** (UI work, CI, screenshots):
+
+```bash
+BOT_ENABLED=false SUPABASE_ENABLED=false python main.py
+# -> web service + /api/* only; Telegram login is skipped entirely.
 ```
 
 `.env` minimum:
@@ -277,9 +295,10 @@ curl -s -X POST https://your-service.onrender.com/api/preview \
 
 | Variable | Default | Notes |
 |---|---|---|
-| `TELEGRAM_API_ID` | – | **required** |
+| `TELEGRAM_API_ID` | – | **required** (when `BOT_ENABLED=true`) |
 | `TELEGRAM_API_HASH` | – | **required**, secret |
 | `BOT_TOKEN` | – | **required**, secret |
+| `BOT_ENABLED` | `true` | `false` → web service / Mini App only, no Telegram login (local previews, CI) |
 | `PORT` | `8000` | Render injects it |
 | `PUBLIC_URL` | – | optional explicit base URL |
 | `MINI_APP_URL` | – | HTTPS Mini App URL (enables the menu button) |

@@ -23,7 +23,7 @@ from pyrogram import idle
 
 from app import __version__
 from app.bot.client import build_client, register_commands, set_bot_description, set_menu_button
-from app.bot.handlers import help_text
+from app.bot.handlers import help_text, register_handlers
 from app.config import get_settings
 from app.db import close_supabase, get_supabase
 from app.db import repository as repo
@@ -80,14 +80,21 @@ async def run() -> None:
     runner = await _serve_web(settings.port)
 
     # ---- 3. Telegram client -----------------------------------------
-    client = build_client()
-    await client.start()
-    me = await client.get_me()
-    log.info("telegram connected", extra={"username": me.username, "id": me.id})
+    client = None
+    if settings.bot_enabled:
+        client = build_client()
+        count = register_handlers(client)
+        if count == 0:  # pragma: no cover - defensive
+            log.error("no Telegram handlers registered - the bot would be silent")
+        await client.start()
+        me = await client.get_me()
+        log.info("telegram connected", extra={"username": me.username, "id": me.id})
 
-    await register_commands(client)
-    await set_menu_button(client, settings.webhook_base)
-    await set_bot_description(client, help_text().replace("<b>", "").replace("</b>", ""))
+        await register_commands(client)
+        await set_menu_button(client, settings.webhook_base)
+        await set_bot_description(client, help_text().replace("<b>", "").replace("</b>", ""))
+    else:
+        log.warning("BOT_ENABLED=false - Telegram client not started (web / Mini App only)")
 
     # ---- 4. keep-alive + idle until a signal arrives ------------------
     start_keepalive()
@@ -114,8 +121,9 @@ async def run() -> None:
     async with manager.shutdown():
         pass
     await stop_keepalive()
-    with contextlib.suppress(Exception):
-        await client.stop()
+    if client is not None:
+        with contextlib.suppress(Exception):
+            await client.stop()
     with contextlib.suppress(Exception):
         await runner.cleanup()
     await close_supabase()
