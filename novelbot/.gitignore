@@ -1,0 +1,32 @@
+# ---- secrets / local state ----
+.env
+.env.*
+!.env.example
+*.session
+*.session-journal
+downloads/
+/tmp/
+data/
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ---- editors / os ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- build artefacts ----
+*.zip
+dist/
+build/

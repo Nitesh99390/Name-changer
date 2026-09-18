@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Novel Name Converter</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:var(--tg-theme-bg-color,#ffffff);
+    --bg2:var(--tg-theme-secondary-bg-color,#f2f3f7);
+    --fg:var(--tg-theme-text-color,#111827);
+    --hint:var(--tg-theme-hint-color,#8a8f98);
+    --btn:var(--tg-theme-button-color,#2f6df6);
+    --btnfg:var(--tg-theme-button-text-color,#ffffff);
+    --line:rgba(128,128,128,.22);
+    --ok:#16a34a;--warn:#d97706;--bad:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:14px 14px 32px;background:var(--bg);color:var(--fg);
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--hint);font-size:12.5px;margin-bottom:14px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--hint);margin:0 0 9px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px}
+  .stat b{display:block;font-size:17px}
+  .stat span{color:var(--hint);font-size:11px}
+  textarea,input[type=text]{width:100%;background:var(--bg);color:var(--fg);
+       border:1px solid var(--line);border-radius:11px;padding:10px;font:14px/1.5 inherit;resize:vertical}
+  textarea{min-height:92px}
+  button{background:var(--btn);color:var(--btnfg);border:0;border-radius:11px;
+       padding:11px 14px;font-size:14.5px;font-weight:600;width:100%;margin-top:9px}
+  button.ghost{background:transparent;color:var(--btn);border:1px solid var(--btn)}
+  button:disabled{opacity:.55}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row small{display:block;color:var(--hint);font-size:11.5px}
+  .sw{width:46px;height:27px;border-radius:99px;background:var(--line);position:relative;flex:0 0 auto;transition:.18s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .sw.on{background:var(--btn)}
+  .sw.on::after{left:22px}
+  pre{margin:9px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:11px;
+      padding:10px;font-size:12.5px;white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--hint)}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+  .muted{color:var(--hint);font-size:12px}
+  ol{padding-left:20px;margin:6px 0 0}
+  li{margin-bottom:4px}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+  <h1>📖 Novel Name Converter</h1>
+  <div class="sub">Chinese character names → Indian names, applied consistently across the whole novel.</div>
+
+  <div class="card">
+    <h2>Status</h2>
+    <div class="grid">
+      <div class="stat"><b id="s-pairs">–</b><span>name pairs</span></div>
+      <div class="stat"><b id="s-jobs">–</b><span>conversions</span></div>
+      <div class="stat"><b id="s-chars">–</b><span>characters</span></div>
+      <div class="stat"><b id="s-db">–</b><span>database</span></div>
+    </div>
+    <div style="margin-top:9px"><span class="pill" id="s-ver">version …</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Try it — live preview</h2>
+    <textarea id="demo" placeholder="Paste a few paragraphs here (max 4000 characters)…"></textarea>
+    <button id="run">Convert preview</button>
+    <div id="meta" class="muted" style="margin-top:7px"></div>
+    <pre id="out" hidden></pre>
+  </div>
+
+  <div class="card">
+    <h2>Your options</h2>
+    <div class="row">
+      <div><b>Pinyin / Latin names</b><small>Also convert “Wang Wei” style names</small></div>
+      <div class="sw" id="sw-latin" data-key="latin_names"></div>
+    </div>
+    <div class="row">
+      <div><b>Live progress</b><small>Update the status message while working</small></div>
+      <div class="sw" id="sw-prog" data-key="notify_progress"></div>
+    </div>
+    <div class="row">
+      <div><b>Keep original</b><small>Write “Raj (王)” instead of just “Raj”</small></div>
+      <div class="sw" id="sw-keep" data-key="keep_original"></div>
+    </div>
+    <div class="muted" id="quota" style="margin-top:9px"></div>
+  </div>
+
+  <div class="card">
+    <h2>How to use</h2>
+    <ol>
+      <li>Save your novel as a <b>.txt</b> file.</li>
+      <li>Send it to the bot in this chat.</li>
+      <li>The converted file comes back in seconds.</li>
+    </ol>
+    <button class="ghost" id="close">Close Mini App</button>
+  </div>
+
+  <div class="card">
+    <h2>Privacy</h2>
+    <div class="muted">
+      Only metadata is stored: your Telegram id, job counters and your options.
+      <b>Your novel text and files are never saved</b> — they live in a temporary
+      directory for the duration of the job and are deleted right after.
+    </div>
+  </div>
+
+  <div class="center muted" id="err"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+const initData = tg?.initData || "";
+const api = async (path, opts = {}) => {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { "Content-Type": "application/json", "X-Init-Data": initData, ...(opts.headers || {}) }
+  });
+  return res.json();
+};
+const fmt = n => (n || 0).toLocaleString();
+const set = (id, v, cls) => { const el = document.getElementById(id); el.textContent = v; if (cls) el.className = cls; };
+
+async function loadHealth() {
+  try {
+    const d = await api("/api/health");
+    set("s-pairs", fmt(d.names?.pairs));
+    set("s-db", d.db?.reachable ? "online" : (d.db?.enabled ? "down" : "off"),
+        d.db?.reachable ? "ok" : (d.db?.enabled ? "bad" : "warn"));
+    set("s-ver", `mapping ${d.names?.version} · ${d.names?.checksum}`);
+  } catch (e) { set("err", "Could not reach the service."); }
+}
+
+async function loadStats() {
+  try {
+    const d = await api("/api/stats");
+    if (d.ok) { set("s-jobs", fmt(d.stats.jobs_done)); set("s-chars", fmt(d.stats.chars)); }
+  } catch (e) {}
+}
+
+async function loadMe() {
+  if (!initData) { document.getElementById("quota").textContent = "Open this from inside Telegram to save your options."; return; }
+  try {
+    const d = await api("/api/me");
+    if (!d.ok) return;
+    for (const [key, val] of Object.entries(d.settings || {})) {
+      const el = document.querySelector(`.sw[data-key="${key}"]`);
+      if (el) el.classList.toggle("on", !!val);
+    }
+    document.getElementById("quota").textContent =
+      `Quota: ${d.quota.remaining}/${d.quota.limit} conversions left this hour`;
+  } catch (e) {}
+}
+
+document.querySelectorAll(".sw").forEach(el => {
+  el.addEventListener("click", async () => {
+    const key = el.dataset.key;
+    el.classList.toggle("on");
+    const on = el.classList.contains("on");
+    if (initData) await api("/api/settings", { method: "POST", body: JSON.stringify({ [key]: on }) });
+  });
+});
+
+document.getElementById("run").addEventListener("click", async () => {
+  const text = document.getElementById("demo").value;
+  const btn = document.getElementById("run");
+  const meta = document.getElementById("meta");
+  const out = document.getElementById("out");
+  if (!text.trim()) { meta.textContent = "Paste some text first."; return; }
+  btn.disabled = true; meta.textContent = "Converting…";
+  try {
+    const d = await api("/api/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        text,
+        latin_names: document.getElementById("sw-latin").classList.contains("on"),
+        keep_original: document.getElementById("sw-keep").classList.contains("on")
+      })
+    });
+    if (!d.ok) { meta.textContent = "Preview failed: " + (d.error || "unknown"); return; }
+    out.hidden = false; out.textContent = d.output;
+    meta.textContent = `${d.replacements} replacements · ${d.unique_names} distinct names · ${d.elapsed_ms} ms`;
+  } catch (e) { meta.textContent = "Network error."; }
+  finally { btn.disabled = false; }
+});
+
+document.getElementById("close").addEventListener("click", () => tg?.close?.());
+
+if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor?.("secondary_bg_color"); }
+loadHealth(); loadStats(); loadMe();
+</script>
+</body>
+</html>

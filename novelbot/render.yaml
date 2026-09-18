@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------
+#  Render Blueprint - free tier friendly
+#  Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+#  NOTE: the free plan only offers "web" services (no workers, no cron
+#  inside the blueprint), which is exactly why the bot runs inside the
+#  web service process (see main.py).
+# ---------------------------------------------------------------------
+services:
+  - type: web
+    name: novel-name-converter
+    runtime: python
+    plan: free
+    region: singapore          # pick the region closest to your users
+    branch: main
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # ---------- Telegram (set these as SECRET in the dashboard) ----------
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+
+      # ---------- Public URL / Mini App ----------
+      - key: RETURN_TO_BOT
+        sync: false
+      - key: MINI_APP_URL
+        sync: false
+      # PUBLIC_URL is optional; Render already injects RENDER_EXTERNAL_URL.
+
+      # ---------- Supabase (metadata only) ----------
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_ENABLED
+        value: "true"
+
+      # ---------- Limits ----------
+      - key: MAX_FILE_MB
+        value: "20"
+      - key: MAX_FILE_CHARS
+        value: "4000000"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "20"
+      - key: MAX_CONCURRENT_JOBS
+        value: "2"
+      - key: JOB_TIMEOUT_SECONDS
+        value: "240"
+      - key: MAX_PAIRS
+        value: "1500"
+      - key: DISCOVERY_THRESHOLD
+        value: "3"
+
+      # ---------- Ops ----------
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: LOG_JSON
+        value: "true"
+      - key: KEEPALIVE_ENABLED
+        value: "true"
+      - key: KEEPALIVE_INTERVAL
+        value: "600"
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: DATA_DIR
+        value: "/tmp/novelbot"
